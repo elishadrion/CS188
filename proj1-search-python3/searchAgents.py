@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -295,14 +295,17 @@ class CornersProblem(search.SearchProblem):
         space)
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return (self.startingPosition, tuple((False for _ in range(4))))
 
     def isGoalState(self, state):
         """
         Returns whether this search state is a goal state of the problem.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # if state in self.corners_eaten:
+        #     self.corners_eaten[state] = True
+        # all_eaten = all(self.corners_eaten[x] for x in self.corners_eaten)
+        return all(state[1])
 
     def getSuccessors(self, state):
         """
@@ -325,6 +328,15 @@ class CornersProblem(search.SearchProblem):
             #   hitsWall = self.walls[nextx][nexty]
 
             "*** YOUR CODE HERE ***"
+            x,y = state[0]
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            if not self.walls[nextx][nexty]:
+                nextState = (nextx, nexty)
+                corners_bools = list(state[1])[:]
+                if nextState in self.corners:
+                    corners_bools[self.corners.index(nextState)] = True
+                successors.append( ( (nextState, tuple(corners_bools)), action, 1) )
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
@@ -358,9 +370,22 @@ def cornersHeuristic(state, problem):
     """
     corners = problem.corners # These are the corner coordinates
     walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
-
     "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    score = 0
+    last_position = state[0]
+    to_delete = []
+    #we "delete" the corners that have been already eaten
+    for i in range(4):
+        if state[1][i]:
+            to_delete.append(corners[i])
+    corners = [x for x in corners if x not in to_delete]
+    while len(corners) != 0:
+        #we go to the next dot from our last position (position of the last dot eaten in general)
+        closest_corner = min(corners, key=lambda x: util.manhattanDistance(last_position, x))
+        score += util.manhattanDistance(last_position, closest_corner)
+        last_position = closest_corner
+        corners = tuple([x for x in corners if x != closest_corner])
+    return score
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -452,9 +477,31 @@ def foodHeuristic(state, problem):
     Subsequent calls to this heuristic can access
     problem.heuristicInfo['wallCount']
     """
-    position, foodGrid = state
     "*** YOUR CODE HERE ***"
-    return 0
+    #food_grid = state[1].asList()
+    # if not food_grid:
+    #     return 0
+    # next_point = min(food_grid, key=lambda x: util.manhattanDistance(state[0], x))
+    # return util.manhattanDistance(next_point, state[0])
+
+    #############################
+    #   ISSUE !
+    #   If I am not wrong, the heuristic function should estimate the cost from our current node (position)
+    #   to the goal (all dots eaten). Returning the distance to the closest dot is passing for the grader, but
+    #   it doesn't seem to fit the definition of heuristic. On the opposite, the code below doesn't pass because
+    #   it's inadmissible sometimes.
+    ##############################
+    score = 0
+    food_grid = state[1].copy()
+    last_position = state[0]
+    while food_grid.count() != 0:
+        #closest_dot, distance = find_closest_dot(last_position, food_grid.asList())
+        #score += distance
+        closest_dot = min(food_grid.asList(), key=lambda x: util.manhattanDistance(last_position, x))
+        score += util.manhattanDistance(closest_dot, last_position)
+        last_position = closest_dot
+        food_grid.data[last_position[0]][last_position[1]] = False
+    return score
 
 class ClosestDotSearchAgent(SearchAgent):
     "Search for all food using a sequence of searches"
@@ -483,9 +530,8 @@ class ClosestDotSearchAgent(SearchAgent):
         food = gameState.getFood()
         walls = gameState.getWalls()
         problem = AnyFoodSearchProblem(gameState)
-
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return search.bfs(problem)
 
 class AnyFoodSearchProblem(PositionSearchProblem):
     """
@@ -506,7 +552,6 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         "Stores information from the gameState.  You don't need to change this."
         # Store the food for later reference
         self.food = gameState.getFood()
-
         # Store info for the PositionSearchProblem (no need to change this)
         self.walls = gameState.getWalls()
         self.startState = gameState.getPacmanPosition()
@@ -521,7 +566,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x,y = state
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.food[x][y]
 
 def mazeDistance(point1, point2, gameState):
     """

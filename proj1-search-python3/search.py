@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+#
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -18,6 +18,33 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
+
+
+class Node:
+    def __init__(self, state, parent=None, action=None, cost=0):
+        self.state = state
+        self.action = action
+        self.depth = 1
+        self.cost = cost
+        self.parent = parent
+        if parent:
+            self.depth = parent.depth+1
+
+    def expand_node(self, problem):
+        return (Node(x[0], self, x[1], self.cost+x[2]) for x in problem.getSuccessors(self.state))
+
+    def get_solution(self):
+        #We go back by using the parent of each node and the action it led us to it
+        node, reversed_path = self, []
+        while node:
+            reversed_path.append(node.action)
+            node = node.parent
+        reversed_path.pop()
+        return list(reversed(reversed_path))
+
+    def __eq__(self, other):
+        return isinstance(other, Node) and self.state == other.state
+
 
 class SearchProblem:
     """
@@ -87,17 +114,59 @@ def depthFirstSearch(problem):
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    fringe = util.Stack()
+    fringe.push(Node(problem.getStartState()))
+    explored = set()
+    if problem.isGoalState(problem.getStartState()):
+        return []
+    while not fringe.isEmpty():
+        node = fringe.pop()
+        explored.add(node.state)
+        if problem.isGoalState(node.state):
+            print (node.state)
+            return node.get_solution()
+        for successor in node.expand_node(problem):
+            if successor.state not in explored:
+                fringe.push(successor)
+    return []
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    fringe = util.Queue()
+    fringe.push(Node(problem.getStartState()))
+    explored = set()
+    if problem.isGoalState(problem.getStartState()):
+        return []
+    while not fringe.isEmpty():
+        node = fringe.pop()
+        explored.add(node.state)
+        if problem.isGoalState(node.state):
+            return node.get_solution()
+        for successor in node.expand_node(problem):
+            if successor.state not in explored and successor not in fringe.list:
+                fringe.push(successor)
+    return []
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    fringe = util.PriorityQueue()
+    fringe.push(Node(problem.getStartState()), 0)
+    explored = set()
+    if problem.isGoalState(problem.getStartState()):
+        return []
+    while not fringe.isEmpty():
+        node = fringe.pop()
+        explored.add(node.state)
+        if problem.isGoalState(node.state):
+            return node.get_solution()
+        for successor in node.expand_node(problem):
+            if successor.state not in explored and successor not in fringe.heap:
+                #the priority is the cost to get to the node
+                #the higher the cost, the lower the priority
+                fringe.update(successor, successor.cost)
+    return []
 
 def nullHeuristic(state, problem=None):
     """
@@ -109,7 +178,21 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    fringe = util.PriorityQueue()
+    fringe.push(Node(problem.getStartState()), 0)
+    explored = set()
+    if problem.isGoalState(problem.getStartState()):
+        return []
+    while not fringe.isEmpty():
+        node = fringe.pop()
+        explored.add(node.state)
+        if problem.isGoalState(node.state):
+            return node.get_solution()
+        for successor in node.expand_node(problem):
+            if successor.state not in explored and successor not in fringe.heap:
+                #priority is heuristic+cost
+                fringe.update(successor, successor.cost+heuristic(successor.state, problem))
+    return []
 
 
 # Abbreviations
