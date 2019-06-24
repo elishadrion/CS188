@@ -260,15 +260,35 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
       Your expectimax agent (question 4)
     """
 
+    def expectimax(self, state, agent, depth):
+        agent = agent%state.getNumAgents()
+        if state.isWin() or state.isLose() or depth == 0:
+            return self.evaluationFunction(state)
+        if agent == 0:
+            return self.maxValue(state, agent, depth)[0]
+        else:
+            return self.expValue(state, agent, depth)
+
+    def maxValue(self, state, agent, depth):
+        v = float('-inf'), Directions.STOP
+        actions = state.getLegalActions(agent)
+        successors = [state.generateSuccessor(agent, action) for action in actions]
+        scores = [self.expectimax(successor, agent+1, depth-1) for successor in successors]
+        return max(scores), actions[scores.index(max(scores))]
+
+    def expValue(self, state, agent, depth):
+        v = 0, Directions.STOP
+        actions = state.getLegalActions(agent)
+        successors = [state.generateSuccessor(agent, action) for action in actions]
+        scores = [self.expectimax(successor, agent+1, depth-1) for successor in successors]
+        return sum(scores)/len(scores)
+
     def getAction(self, gameState):
         """
-          Returns the expectimax action using self.depth and self.evaluationFunction
-
-          All ghosts should be modeled as choosing uniformly at random from their
-          legal moves.
+          Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.maxValue(gameState, 0, self.depth*gameState.getNumAgents())[1]
 
 def betterEvaluationFunction(currentGameState):
     """
