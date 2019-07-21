@@ -139,22 +139,6 @@ class MultiAgentSearchAgent(Agent):
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
 
-
-# class Node:
-#     def __init__(self, gameState, agentIndex, action, parent=None):
-#         self.gameState = gameState
-#         self.depth = 1
-#         self.parent = parent
-#         #index of the agent who has to take action
-#         self.agentIndex = agentIndex
-#         #action that brought us here
-#         self.action = action
-#         if parent:
-#             #if the agent index is lower than its parent, it means we reached a new depth
-#             self.depth = parent.depth+1 if agentIndex < parent.agentIndex else parent.depth
-#
-#     def nextAgentIndex(self):
-#         return (self.agentIndex+1) % self.gameState.getNumAgents()
 class Node:
     def __init__(self, gameState, agentIndex, action, parent=None):
         self.state = gameState
@@ -290,6 +274,32 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "*** YOUR CODE HERE ***"
         return self.maxValue(gameState, 0, self.depth*gameState.getNumAgents())[1]
 
+def willCollide(currentGameState, ghostState):
+    pacmanX, pacmanY = currentGameState.getPacmanPosition()
+    ghostX, ghostY = ghostState.getPosition()
+    pacmanState = currentGameState.getPacmanState()
+    #check there is no wall separating them
+    for x in range(int(min(ghostX, pacmanX))+1, int(max(ghostX, pacmanX))):
+        for y in range(int(min(ghostY, pacmanY))+1, int(max(ghostY, pacmanY))):
+            if (currentGameState.hasWall(x, y)):
+                return False
+    SAFEDISTANCE = 2
+    #Represent the differences in positions, square around pacman
+    perpendicular = {(1,1),(-1,-1),(1,-1),(-1,1)}
+    if (pacmanX-ghostX, pacmanY-ghostY) in perpendicular:
+        #will collide in a perpendicular way
+        if Directions.LEFT[pacmanState.getDirection()] == ghostState.getDirection():
+            return True
+        elif Directions.RIGHT[pacmanState.getDirection()] == ghostState.getDirection():
+            return True
+    #Checks the distance horizontally and vertically
+    elif pacmanX == ghostX and abs(pacmanY-ghostY) <= SAFEDISTANCE:
+        return True
+    elif pacmanY == ghostY and abs(pacmanX-ghostX) <= SAFEDISTANCE:
+        return True
+
+    return False
+
 def betterEvaluationFunction(currentGameState):
     """
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
@@ -298,7 +308,14 @@ def betterEvaluationFunction(currentGameState):
       DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    pacPos = currentGameState.getPacmanPosition()
+    closest_dot = min(currentGameState.getFood().asList(), key=lambda x: util.manhattanDistance(pacPos, x))
+    #The further it is from the closest dot, the more the score is penalized
+    new_score = -util.manhattanDistance(pacPos, closest_dot)
+    for ghostState in currentGameState.getGhostStates():
+        if willCollide(currentGameState, ghostState):
+            new_score -= 100
+    return new_score
 
 # Abbreviation
 better = betterEvaluationFunction
